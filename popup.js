@@ -11,7 +11,7 @@ const handleExport = async (actionType) => {
       chrome.tabs.create({ url: url });
     }
   } catch (error) {
-    alert("Chat-a-logue only works on active ChatGPT, Claude, or Gemini tabs!");
+    alert("Chat-a-logue only works on active ChatGPT, Claude, or Gemini tabs! Please reload the tab and try again.");
   }
 };
 
