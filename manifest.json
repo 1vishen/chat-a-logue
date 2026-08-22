@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Chat-a-logue",
-  "version": "1.0.0",
-  "description": "Got tired of limited exports on other extensions so built one to export ChatGPT, Claude, and Gemini chats to Markdown or Gruvbox-Themed PDFs.",
+  "name": "Chat-a-Logue",
+  "version": "1.0",
+  "description": "Got tired of limited exports on other free extensions so built one to export ChatGPT, Claude, and Gemini chats to beautifully formatted Markdown or styled PDFs.",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": ["https://chatgpt.com/*", "https://gemini.google.com/*", "https://claude.ai/*"],
   "action": {

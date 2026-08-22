@@ -3,66 +3,324 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      body {
-        width: 230px;
-        padding: 16px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background-color: #fbf1c7;
-        color: #3c3836;
-        margin: 0;
+      :root {
+        --text: #3c3836;
+        --accent: #b57614;
       }
+
+      /* The Chrome Window Base */
+      body {
+        width: 270px;
+        margin: 0;
+        padding: 16px;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+
+        /* Pastel Palette */
+        background: linear-gradient(115deg, #ffcbe1, #d6e5bd, #f9e1a8, #bcd8ec, #dcccec, #ffdab4);
+        background-size: 600% 600%;
+
+        /* chaotic, liquid animation */
+        animation: chaoticLiquid 12s infinite alternate ease-in-out;
+      }
+
+      /* Moving unpredictably across X and Y axes */
+      @keyframes chaoticLiquid {
+        0% {
+          background-position: 0% 0%;
+        }
+        20% {
+          background-position: 100% 30%;
+        }
+        40% {
+          background-position: 20% 100%;
+        }
+        60% {
+          background-position: 80% 80%;
+        }
+        80% {
+          background-position: 40% 10%;
+        }
+        100% {
+          background-position: 100% 100%;
+        }
+      }
+
+      /* Frosted Glass Panel */
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+
+        /* Simulating light reflecting off the top and left edges */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-top: 1px solid rgba(255, 255, 255, 0.8);
+        border-left: 1px solid rgba(255, 255, 255, 0.8);
+
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      /* Header Styling */
       .header {
-        font-weight: bold;
-        font-size: 15px;
-        margin-bottom: 12px;
-        color: #b57614;
         text-align: center;
       }
-      select {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 12px;
-        background-color: #f9f5d7;
-        border: 1px solid #d5c4a1;
-        color: #3c3836;
-        border-radius: 6px;
-        font-size: 13px;
-        outline: none;
+      .header h1 {
+        font-size: 18px;
+        margin: 0 0 4px 0;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
       }
-      button {
+      .header p {
+        font-size: 12px;
+        margin: 0;
+        opacity: 0.8;
+        font-weight: 600;
+      }
+
+      /* Visual Theme Swatches */
+      .theme-label {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      .theme-options {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+      .theme-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .theme-option input {
+        display: none;
+      }
+
+      .swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .swatch.gruvbox {
+        background: linear-gradient(135deg, #fbf1c7 50%, #3c3836 50%);
+      }
+      .swatch.light {
+        background: linear-gradient(135deg, #ffffff 50%, #24292f 50%);
+      }
+      .swatch.dark {
+        background: linear-gradient(135deg, #1e1e1e 50%, #83a598 50%);
+      }
+
+      .theme-option input:checked + .swatch {
+        border-color: var(--text);
+        transform: scale(1.2);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      }
+      .theme-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text);
+        opacity: 0.6;
+        transition: 0.2s;
+      }
+      .theme-option input:checked ~ .theme-name {
+        opacity: 1;
+      }
+
+      /* Glass Buttons */
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         width: 100%;
-        padding: 10px;
-        margin-bottom: 8px;
-        background-color: #ebdbb2;
-        border: 1px solid #d5c4a1;
-        color: #3c3836;
-        font-weight: bold;
-        border-radius: 6px;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
         transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
       }
-      button:hover {
-        background-color: #d5c4a1;
+      .btn:active {
+        transform: scale(0.97);
       }
-      button.pdf-btn {
-        background-color: #b57614;
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      /* Light Glass Button */
+      .btn-md {
+        background: rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-top: 1px solid rgba(255, 255, 255, 0.8);
+        color: var(--text);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      .btn-md:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      /* Accent Glass Button */
+      .btn-pdf {
+        background: rgba(181, 118, 20, 0.7);
+        border: 1px solid rgba(181, 118, 20, 0.3);
+        border-top: 1px solid rgba(255, 255, 255, 0.5);
         color: #fbf1c7;
-        border: none;
+        box-shadow: 0 4px 12px rgba(181, 118, 20, 0.15);
       }
-      button.pdf-btn:hover {
-        background-color: #9d6708;
+      .btn-pdf:hover:not(:disabled) {
+        background: rgba(181, 118, 20, 0.9);
+      }
+
+      /* Loading State CSS */
+      .spinner {
+        display: none;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .btn.loading .icon {
+        display: none;
+      }
+      .btn.loading .spinner {
+        display: block;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        font-size: 11px;
+        margin-top: 2px;
+        opacity: 0.6;
+        font-weight: 600;
       }
     </style>
   </head>
   <body>
-    <div class="header">📜 Chat-a-logue 📜</div>
-    <select id="theme-selector">
-      <option value="gruvbox">Gruvbox Theme (Default)</option>
-      <option value="light">Light Theme</option>
-      <option value="dark">Dark Theme</option>
-    </select>
-    <button id="export-md">Export to Markdown</button>
-    <button id="export-pdf" class="pdf-btn">Export to PDF</button>
+    <!-- Container creating the frosted glass effect -->
+    <div class="glass-panel">
+      <div class="header">
+        <h1>📜 Chat-a-Logue 📜</h1>
+        <p>AI Chats, Neatly Archived</p>
+      </div>
+
+      <div>
+        <div class="theme-label">Select Theme</div>
+        <div class="theme-options">
+          <label class="theme-option">
+            <input type="radio" name="theme" value="gruvbox" checked />
+            <div class="swatch gruvbox"></div>
+            <span class="theme-name">Gruvbox</span>
+          </label>
+          <label class="theme-option">
+            <input type="radio" name="theme" value="light" />
+            <div class="swatch light"></div>
+            <span class="theme-name">Light</span>
+          </label>
+          <label class="theme-option">
+            <input type="radio" name="theme" value="dark" />
+            <div class="swatch dark"></div>
+            <span class="theme-name">Dark</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <button id="export-md" class="btn btn-md">
+          <svg
+            class="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 12V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-4m5-13v4a1 1 0 0 1-1 1H5m0 6h9m0 0-2-2m2 2-2 2"
+            />
+          </svg>
+          <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          <span class="btn-text">Export Markdown</span>
+        </button>
+
+        <button id="export-pdf" class="btn btn-pdf">
+          <svg
+            class="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 17v-5h1.5a1.5 1.5 0 1 1 0 3H5m12 2v-5h2m-2 3h2M5 10V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1v6M5 19v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1M10 3v4a1 1 0 0 1-1 1H5m6 4v5h1.375A1.627 1.627 0 0 0 14 15.375v-1.75A1.627 1.627 0 0 0 12.375 12H11Z"
+            />
+          </svg>
+          <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          <span class="btn-text">Export PDF</span>
+        </button>
+      </div>
+
+      <div class="footer">v1.0 • Offline Ready</div>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>
