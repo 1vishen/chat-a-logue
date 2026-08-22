@@ -4,13 +4,15 @@
 var PLATFORMS = {
   "chatgpt.com": {
     name: "ChatGPT",
+    // Uses structural data attributes (Highly Resilient)
     messageNode: "[data-message-author-role]",
     isUser: (node) => node.getAttribute("data-message-author-role") === "user",
     getHtml: (node) => node.innerHTML,
   },
   "gemini.google.com": {
     name: "Gemini",
-    messageNode: "user-query, response-container",
+    // Uses custom HTML Web Components (Extremely Resilient)
+    messageNode: "user-query, response-container, model-response",
     isUser: (node) => node.tagName.toLowerCase() === "user-query",
     getHtml: (node) => {
       const clone = node.cloneNode(true);
@@ -20,6 +22,7 @@ var PLATFORMS = {
   },
   "claude.ai": {
     name: "Claude",
+    // Uses both modern data attributes and legacy class fallbacks
     messageNode: ".font-user-message, [data-testid='user-message'], .font-claude-message, .font-claude-response",
     isUser: (node) => node.classList.contains("font-user-message") || node.getAttribute("data-testid") === "user-message",
     getHtml: (node) => node.innerHTML,
