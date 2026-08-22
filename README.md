@@ -80,4 +80,4 @@ Because these platforms frequently change their frontend implementations, occasi
 
 ---
 
-Icons are from ![flowbite](https://flowbite.com/icons/).
+Icons are from [flowbite](https://flowbite.com/icons/).
