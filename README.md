@@ -16,15 +16,18 @@ I build this mainly for exporting my chats with heavy LaTeX and Mathe content. G
 ## 📸 See It In Action
 
 Check out the screenshots below to see how Chat-a-logue handles complex layouts, math, ASCII diagrams, and syntax highlighting:
-
-![Layout Example](chat-a-logue/examples/images/ex1.png)
-![Math Equations](chat-a-logue/examples/images/ex2.png)
-![ASCII Flowcharts](chat-a-logue/examples/images/ex3.png)
-![Syntax Highlighting](chat-a-logue/examples/images/ex4.png)
+### 1. Layout
+![Layout Example](examples/images/ex1.png)
+### 2. Math
+![Math Equations](examples/images/ex2.png)
+### 3. ASCII
+![ASCII Flowcharts](examples/images/ex3.png)
+### 4. Syntax Highlighting
+![Syntax Highlighting](examples/images/ex4.png)
 
 ### 📄 View Full Export Examples
 
-Want to see exactly what the final output looks like? [Click here to view detailed PDF and Markdown export samples](./my-Github-Repos/chat-a-logue/examples).
+Want to see exactly what the final output looks like? [Click here to view detailed PDF and Markdown export samples](examples).
 
 ## 🚀 Installation
 
