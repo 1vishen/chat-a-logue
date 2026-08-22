@@ -18,6 +18,17 @@
         color: #b57614;
         text-align: center;
       }
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 12px;
+        background-color: #f9f5d7;
+        border: 1px solid #d5c4a1;
+        color: #3c3836;
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+      }
       button {
         width: 100%;
         padding: 10px;
@@ -45,6 +56,11 @@
   </head>
   <body>
     <div class="header">📜 Chat-a-logue 📜</div>
+    <select id="theme-selector">
+      <option value="gruvbox">Gruvbox Theme (Default)</option>
+      <option value="light">Light Theme</option>
+      <option value="dark">Dark Theme</option>
+    </select>
     <button id="export-md">Export to Markdown</button>
     <button id="export-pdf" class="pdf-btn">Export to PDF</button>
     <script src="popup.js"></script>

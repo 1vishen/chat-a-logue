@@ -1,7 +1,7 @@
 // ==========================================
 // 1. SELECTOR CONFIGURATION
 // ==========================================
-const PLATFORMS = {
+var PLATFORMS = {
   "chatgpt.com": {
     name: "ChatGPT",
     messageNode: "[data-message-author-role]",
@@ -20,8 +20,8 @@ const PLATFORMS = {
   },
   "claude.ai": {
     name: "Claude",
-    messageNode: ".font-user-message, .font-claude-message",
-    isUser: (node) => node.classList.contains("font-user-message"),
+    messageNode: ".font-user-message, [data-testid='user-message'], .font-claude-message, .font-claude-response",
+    isUser: (node) => node.classList.contains("font-user-message") || node.getAttribute("data-testid") === "user-message",
     getHtml: (node) => node.innerHTML,
   },
 };
@@ -29,42 +29,33 @@ const PLATFORMS = {
 // ==========================================
 // 2. PRE-PROCESSING HELPERS
 // ==========================================
-
-// Safely extracts raw LaTeX from the DOM before Markdown strips it
 function preserveMath(cloneNode) {
   const mathNodes = cloneNode.querySelectorAll(".math-inline, .math-block, .katex, mjx-container");
   mathNodes.forEach((node) => {
     let tex = "";
-
-    // 1. Check hidden MathML annotation tag (Primary Target)
     const annotation = node.querySelector("annotation");
     if (annotation) tex = annotation.textContent;
 
-    // 2. Check inner <math> element's alttext attribute
     if (!tex) {
       const mathTag = node.querySelector("math");
       if (mathTag) tex = mathTag.getAttribute("alttext");
     }
 
-    // 3. Check container data attributes
     if (!tex) tex = node.getAttribute("data-tex") || node.getAttribute("data-math");
 
-    // 4. Check MathJax (ChatGPT) aria-label
     if (!tex && node.tagName.toLowerCase() === "mjx-container") {
       const mjxMath = node.querySelector("mjx-math");
       if (mjxMath) tex = mjxMath.getAttribute("aria-label");
     }
 
-    // Lock the extracted TeX directly onto the node for Turndown to read safely
     if (tex) {
-      tex = tex.replace(/^ParseError:\s*KaTeX\s*parse\s*error:\s*[^:]+:\s*/i, ""); // Strip errors
-      tex = tex.replace(/^\$+/, "").replace(/\$+$/, "").trim(); // Prevent $$$$ stacking
+      tex = tex.replace(/^ParseError:\s*KaTeX\s*parse\s*error:\s*[^:]+:\s*/i, "");
+      tex = tex.replace(/^\$+/, "").replace(/\$+$/, "").trim();
       node.setAttribute("data-raw-tex", tex);
     }
   });
 }
 
-// Handles Blob URLs natively & fetches true currentSrc
 async function processImages(cloneNode, originalNode) {
   const cloneImages = cloneNode.querySelectorAll("img");
   const originalImages = originalNode.querySelectorAll("img");
@@ -76,7 +67,6 @@ async function processImages(cloneNode, originalNode) {
     const origImg = originalImages[i];
     if (!origImg) continue;
 
-    // Grab the true URL from the browser's active engine
     let src = origImg.currentSrc || origImg.src || origImg.getAttribute("src") || origImg.getAttribute("data-src");
     if (!src) continue;
 
@@ -86,7 +76,6 @@ async function processImages(cloneNode, originalNode) {
     if (src.startsWith("data:")) {
       img.setAttribute("src", src);
     } else if (src.startsWith("blob:")) {
-      // Blobs die outside the active tab. Must convert to Base64.
       try {
         const response = await fetch(src);
         const blob = await response.blob();
@@ -101,7 +90,6 @@ async function processImages(cloneNode, originalNode) {
         img.setAttribute("src", src);
       }
     } else {
-      // Standard URLs are mapped to absolute paths
       try {
         const absoluteSrc = new URL(src, window.location.origin).href;
         img.setAttribute("src", absoluteSrc);
@@ -110,6 +98,30 @@ async function processImages(cloneNode, originalNode) {
       }
     }
   }
+}
+
+// Uses bundled Highlight.js to colorize code BEFORE generating the PDF
+function normalizeCodeBlocks(cloneNode) {
+  const preBlocks = cloneNode.querySelectorAll("pre");
+  preBlocks.forEach((pre) => {
+    const code = pre.querySelector("code") || pre;
+    const rawCode = code.textContent;
+    let lang = "";
+    const className = (code.className || "") + " " + (pre.className || "");
+    const langMatch = className.match(/language-([a-zA-Z0-9_\-]+)/);
+    if (langMatch) lang = langMatch[1];
+
+    if (typeof hljs !== "undefined") {
+      try {
+        code.innerHTML = lang && hljs.getLanguage(lang) ? hljs.highlight(rawCode, { language: lang }).value : hljs.highlightAuto(rawCode).value;
+        code.classList.add("hljs");
+      } catch (e) {
+        code.textContent = rawCode;
+      }
+    } else {
+      code.textContent = rawCode;
+    }
+  });
 }
 
 // ==========================================
@@ -121,7 +133,6 @@ async function parseChatData() {
   if (!platformKey) return { blocks: [] };
 
   const config = PLATFORMS[platformKey];
-
   const rawTitle = document.title || "Chat Export";
   const chatTitle = rawTitle.replace(/( - ChatGPT| - Claude| - Gemini)$/, "").trim();
   const modelName = config.name;
@@ -148,6 +159,7 @@ async function parseChatData() {
     });
 
     preserveMath(cleanNode);
+    normalizeCodeBlocks(cleanNode);
     await processImages(cleanNode, node);
 
     chatBlocks.push({
@@ -174,9 +186,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const pad = (n) => n.toString().padStart(2, "0");
     const formattedDate = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    // ==========================================
     // EXPORT MARKDOWN
-    // ==========================================
     if (request.action === "EXPORT_MD") {
       const turndownService = new TurndownService({
         headingStyle: "atx",
@@ -198,10 +208,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         },
         replacement: (content, node) => {
           let tex = node.getAttribute("data-raw-tex");
-
-          if (!tex) {
-            tex = node.textContent.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
-          }
+          if (!tex) tex = node.textContent.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
 
           const isDisplay =
             node.classList?.contains("math-block") ||
@@ -261,10 +268,61 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ status: "success" });
     }
 
-    // ==========================================
     // EXPORT PDF
-    // ==========================================
     if (request.action === "EXPORT_PDF") {
+      let themeStyles = "";
+      let hljsStyles = "";
+
+      if (request.theme === "dark") {
+        themeStyles = `
+          --bg: #1e1e1e; --text: #d4d4d4; --header-border: #3c3836;
+          --header-text: #83a598; --card-bg: #282828; --card-border: #3c3836;
+          --sender: #83a598; --table-header: #3c3836; --table-border: #504945;
+          --code-bg: #0d1117; --code-text: #e6edf3;
+        `;
+        hljsStyles = `
+          .hljs { color: #c9d1d9; background: #0d1117; }
+          .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #ff7b72; }
+          .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #d2a8ff; }
+          .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #79c0ff; }
+          .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #a5d6ff; }
+          .hljs-built_in, .hljs-symbol { color: #ffa657; }
+          .hljs-comment, .hljs-code, .hljs-formula { color: #8b949e; }
+        `;
+      } else if (request.theme === "light") {
+        themeStyles = `
+          --bg: #ffffff; --text: #24292f; --header-border: #d0d7de;
+          --header-text: #57606a; --card-bg: #f6f8fa; --card-border: #d0d7de;
+          --sender: #0969da; --table-header: #eaeef2; --table-border: #d0d7de;
+          --code-bg: #eaeef2; --code-text: #24292f;
+        `;
+        hljsStyles = `
+          .hljs { color: #24292e; background: #ffffff; }
+          .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #d73a49; }
+          .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #6f42c1; }
+          .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #005cc5; }
+          .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #032f62; }
+          .hljs-built_in, .hljs-symbol { color: #e36209; }
+          .hljs-comment, .hljs-code, .hljs-formula { color: #6a737d; }
+        `;
+      } else {
+        themeStyles = `
+          --bg: #fbf1c7; --text: #3c3836; --header-border: #d5c4a1;
+          --header-text: #928374; --card-bg: #f9f5d7; --card-border: #ebdbb2;
+          --sender: #b57614; --table-header: #ebdbb2; --table-border: #d5c4a1;
+          --code-bg: #282828; --code-text: #ebdbb2;
+        `;
+        hljsStyles = `
+          .hljs { color: #ebdbb2; background: #282828; }
+          .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #fb4934; }
+          .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #fabd2f; }
+          .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #d3869b; }
+          .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #b8bb26; }
+          .hljs-built_in, .hljs-symbol { color: #fe8019; }
+          .hljs-comment, .hljs-code, .hljs-formula { color: #928374; font-style: italic; }
+        `;
+      }
+
       let htmlTemplate = `
         <!DOCTYPE html>
         <html lang="en">
@@ -274,16 +332,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           <meta http-equiv="Content-Security-Policy" content="img-src * data: blob:; font-src * data: blob:; default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
           <title>${chatData.chatTitle}</title>
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+          
           <style>
+            :root {
+              ${themeStyles}
+            }
+            ${hljsStyles} /* Embedded Syntax Palette */
+            
             @page { margin: 0; }
             html, body {
-              background-color: #fbf1c7 !important;
+              background-color: var(--bg) !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
             @media print {
               html, body {
-                background-color: #fbf1c7 !important;
+                background-color: var(--bg) !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
               }
@@ -291,15 +355,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-              color: #3c3836;
+              color: var(--text);
               margin: 15mm;
               padding: 0;
               line-height: 1.6;
             }
             .custom-header {
               display: flex; align-items: center; gap: 15px;
-              border-bottom: 2px solid #d5c4a1; padding-bottom: 10px; margin-bottom: 20px;
-              color: #928374; font-size: 0.95rem; font-family: monospace; font-weight: bold;
+              border-bottom: 2px solid var(--header-border); padding-bottom: 10px; margin-bottom: 20px;
+              color: var(--header-text); font-size: 0.95rem; font-family: monospace; font-weight: bold;
               width: 100%;
             }
             .header-title {
@@ -307,42 +371,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
             .custom-footer {
               display: flex; justify-content: space-between; align-items: center;
-              border-top: 2px solid #d5c4a1; padding-top: 10px; margin-top: 30px;
-              color: #928374; font-size: 0.9rem; font-family: monospace; font-weight: bold;
+              border-top: 2px solid var(--header-border); padding-top: 10px; margin-top: 30px;
+              color: var(--header-text); font-size: 0.9rem; font-family: monospace; font-weight: bold;
             }
             .message-card {
               margin-bottom: 20px; padding: 18px; border-radius: 8px;
-              background-color: #f9f5d7 !important; border: 1px solid #ebdbb2;
+              background-color: var(--card-bg) !important; border: 1px solid var(--card-border);
               page-break-inside: avoid;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .sender { font-weight: 700; font-size: 1.05rem; margin-bottom: 10px; color: #b57614; }
-            pre { background-color: #282828 !important; padding: 14px; overflow-x: auto; white-space: pre-wrap; border-radius: 6px; }
-            code { background-color: #282828 !important; color: #ebdbb2; padding: 2px 6px; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9em; }
-            pre code { padding: 0; background-color: transparent !important; }
-            .hljs-keyword, .token.keyword, .hljs-built_in, .token.builtin { color: #fb4934 !important; }
-            .hljs-string, .token.string { color: #b8bb26 !important; }
-            .hljs-number, .token.number { color: #d3869b !important; }
-            .hljs-title, .token.function, .token.class-name, .hljs-title.class_ { color: #fabd2f !important; }
-            .hljs-comment, .token.comment { color: #928374 !important; font-style: italic !important; }
-            .hljs-variable, .token.variable, .hljs-attr, .token.property { color: #83a598 !important; }
-            .hljs-type, .token.type { color: #fe8019 !important; }
-            .hljs-operator, .token.operator { color: #8ec07c !important; }
-            .hljs-punctuation, .token.punctuation { color: #a89984 !important; }
+            .sender { font-weight: 700; font-size: 1.05rem; margin-bottom: 10px; color: var(--sender); }
+            
+            /* Code Block Styling */
+            pre { 
+              background-color: var(--code-bg) !important; 
+              color: var(--code-text) !important;
+              padding: 14px; 
+              overflow-x: auto; 
+              white-space: pre-wrap; 
+              border-radius: 6px; 
+              font-size: 0.9em;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            /* FORCES THE DEFAULT CODE TEXT COLOR AND PUNCTUATION TO STAY BRIGHT */
+            code { 
+              font-family: 'Fira Code', 'Courier New', monospace;
+              color: var(--code-text) !important; 
+            }
+            .hljs-punctuation, .hljs-property {
+              color: var(--code-text) !important;
+            }
             
             /* Math Rendering Fixes */
             .katex-mathml, mjx-assistive-mml { display: none !important; }
             .katex, .math-inline, .math-block, mjx-container { line-height: normal !important; }
-            
             mjx-container { display: inline-block; vertical-align: middle; }
             mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
             mjx-container svg { display: inline-block; max-width: 100%; height: auto; }
             
             /* Table & Image Styling */
             .message-card table { border-collapse: collapse; width: 100%; margin: 14px 0; }
-            .message-card th, .message-card td { border: 1px solid #d5c4a1; padding: 8px 12px; text-align: left; }
-            .message-card th { background-color: #ebdbb2 !important; color: #3c3836; }
+            .message-card th, .message-card td { border: 1px solid var(--table-border); padding: 8px 12px; text-align: left; }
+            .message-card th { background-color: var(--table-header) !important; color: var(--text); }
             img { max-width: 100%; height: auto; border-radius: 6px; margin: 10px 0; }
           </style>
         </head>
@@ -368,7 +441,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             <span>${chatData.modelName}</span>
           </div>
           <script>
-            // Ensure remote images and Math fonts fully render before triggering the print menu
             window.onload = function() {
               document.fonts.ready.then(() => {
                 setTimeout(() => { window.print(); }, 600);

@@ -27,3 +27,6 @@ yarn.lock
 *.pem
 *.crx
 *.zip
+
+# custom
+extras/
